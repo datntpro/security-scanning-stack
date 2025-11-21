@@ -1,0 +1,378 @@
+services:
+  # ============================================
+  # SAST - Static Application Security Testing
+  # ============================================
+  
+  sonarqube:
+    image: sonarqube:community
+    container_name: sonarqube
+    ports:
+      - "9000:9000"
+    environment:
+      - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+      - ./source:/usr/src
+    networks:
+      - security-scan
+
+  semgrep:
+    image: returntocorp/semgrep:latest
+    container_name: semgrep
+    volumes:
+      - ./source:/src
+      - ./reports:/reports
+    working_dir: /src
+    command: >
+      sh -c "semgrep --config=auto --json --output=/reports/semgrep-report.json . || true"
+    networks:
+      - security-scan
+
+  # ============================================
+  # DAST - Dynamic Application Security Testing
+  # ============================================
+  
+  owasp-zap:
+    image: ghcr.io/zaproxy/zaproxy:stable
+    container_name: owasp-zap
+    ports:
+      - "8080:8080"
+      - "8090:8090"
+    volumes:
+      - ./reports:/zap/reports
+    command: zap.sh -daemon -host 0.0.0.0 -port 8080 -config api.addrs.addr.name=.* -config api.addrs.addr.regex=true
+    networks:
+      - security-scan
+
+  nuclei:
+    image: projectdiscovery/nuclei:latest
+    container_name: nuclei
+    volumes:
+      - ./source:/src
+      - ./reports:/reports
+      - nuclei_templates:/root/nuclei-templates
+    command: >
+      sh -c "nuclei -update-templates && echo 'Nuclei ready for scanning'"
+    networks:
+      - security-scan
+
+  # ============================================
+  # Container Security
+  # ============================================
+  
+  trivy:
+    image: aquasec/trivy:latest
+    container_name: trivy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./source:/src
+      - ./reports:/reports
+      - trivy_cache:/root/.cache
+    command: >
+      sh -c "trivy fs --format json --output /reports/trivy-fs-report.json /src || true"
+    networks:
+      - security-scan
+
+  grype:
+    image: anchore/grype:latest
+    container_name: grype
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./source:/src
+      - ./reports:/reports
+    command: >
+      sh -c "grype dir:/src -o json --file /reports/grype-report.json || true"
+    networks:
+      - security-scan
+
+  dockle:
+    image: goodwithtech/dockle:latest
+    container_name: dockle
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./reports:/reports
+    command: >
+      sh -c "echo 'Dockle ready. Usage: docker exec dockle dockle [IMAGE_NAME]'"
+    networks:
+      - security-scan
+
+  # ============================================
+  # IaC Security
+  # ============================================
+  
+  checkov:
+    image: bridgecrew/checkov:latest
+    container_name: checkov
+    volumes:
+      - ./source:/src
+      - ./reports:/reports
+    command: >
+      sh -c "checkov -d /src --framework all --output json --output-file-path /reports || true"
+    networks:
+      - security-scan
+
+  tfsec:
+    image: aquasec/tfsec:latest
+    container_name: tfsec
+    volumes:
+      - ./source:/src
+      - ./reports:/reports
+    command: >
+      sh -c "tfsec /src --format json --out /reports/tfsec-report.json || true"
+    networks:
+      - security-scan
+
+  kics:
+    image: checkmarx/kics:latest
+    container_name: kics
+    volumes:
+      - ./source:/src
+      - ./reports:/reports
+    command: >
+      sh -c "kics scan -p /src -o /reports --report-formats json,html || true"
+    networks:
+      - security-scan
+
+  # ============================================
+  # Secret Detection
+  # ============================================
+  
+  gitleaks:
+    image: zricethezav/gitleaks:latest
+    container_name: gitleaks
+    volumes:
+      - ./source:/src
+      - ./reports:/reports
+    working_dir: /src
+    entrypoint: []
+    command: >
+      sh -c "gitleaks detect --source=. --report-path=/reports/gitleaks-report.json --report-format=json --verbose --no-git || true"
+    networks:
+      - security-scan
+
+  trufflehog:
+    image: trufflesecurity/trufflehog:latest
+    container_name: trufflehog
+    volumes:
+      - ./source:/src
+      - ./reports:/reports
+    command: >
+      sh -c "trufflehog filesystem /src --json > /reports/trufflehog-report.json || true"
+    networks:
+      - security-scan
+
+  # ============================================
+  # SCA - Software Composition Analysis
+  # ============================================
+  
+  dependency-check:
+    image: owasp/dependency-check:latest
+    container_name: dependency-check
+    volumes:
+      - ./source:/src
+      - ./reports:/reports
+      - dependency_check_data:/usr/share/dependency-check/data
+    command: >
+      sh -c "/usr/share/dependency-check/bin/dependency-check.sh --scan /src --format JSON --format HTML --out /reports --project 'Security-Scan' || true"
+    networks:
+      - security-scan
+
+  safety:
+    image: pyupio/safety:latest
+    container_name: safety
+    volumes:
+      - ./source:/src
+      - ./reports:/reports
+    command: >
+      sh -c "if [ -f /src/requirements.txt ]; then safety check --file=/src/requirements.txt --json > /reports/safety-report.json || true; else echo 'No requirements.txt found'; fi"
+    networks:
+      - security-scan
+
+  # ============================================
+  # Dashboard & Reporting - DefectDojo
+  # ============================================
+  
+  postgres:
+    image: postgres:15-alpine
+    container_name: defectdojo-postgres
+    environment:
+      - POSTGRES_DB=defectdojo
+      - POSTGRES_USER=defectdojo
+      - POSTGRES_PASSWORD=defectdojo
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - security-scan
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U defectdojo"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: defectdojo-redis
+    networks:
+      - security-scan
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  defectdojo-initializer:
+    image: defectdojo/defectdojo-django:latest
+    container_name: defectdojo-initializer
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - DD_DATABASE_URL=postgresql://defectdojo:defectdojo@postgres:5432/defectdojo
+      - DD_CELERY_BROKER_URL=redis://redis:6379/0
+      - DD_SECRET_KEY=hhZCp@D28z!n@NED*yB!ROMt5d&MwK7VzwzMJkrWQ^Nc!&5nqx
+      - DD_CREDENTIAL_AES_256_KEY=bZyVV1VjsKj8Pc6Z0zJEYRCV8VhzoOWzTQrVuFjNxeU=
+      - DD_ALLOWED_HOSTS=*
+      - DD_ADMIN_USER=admin
+      - DD_ADMIN_PASSWORD=admin
+      - DD_ADMIN_MAIL=admin@defectdojo.local
+      - DD_INITIALIZE=true
+    entrypoint: ['/bin/bash', '-c']
+    command:
+      - |
+        echo "Waiting for database..."
+        python manage.py migrate
+        python manage.py createsuperuser --noinput --username admin --email admin@defectdojo.local || true
+        python manage.py loaddata product_type
+        python manage.py loaddata test_type
+        python manage.py loaddata development_environment
+        python manage.py loaddata system_settings
+        python manage.py loaddata benchmark_type
+        python manage.py loaddata benchmark_category
+        python manage.py loaddata benchmark_requirement
+        python manage.py loaddata language_type
+        python manage.py loaddata objects_review
+        python manage.py loaddata regulation
+        echo "Collecting static files..."
+        python manage.py collectstatic --noinput
+        echo "DefectDojo initialized successfully!"
+    networks:
+      - security-scan
+    volumes:
+      - defectdojo_media:/app/media
+      - defectdojo_static:/app/static
+
+  defectdojo:
+    image: defectdojo/defectdojo-django:latest
+    container_name: defectdojo
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      defectdojo-initializer:
+        condition: service_completed_successfully
+    environment:
+      - DD_DATABASE_URL=postgresql://defectdojo:defectdojo@postgres:5432/defectdojo
+      - DD_CELERY_BROKER_URL=redis://redis:6379/0
+      - DD_SECRET_KEY=hhZCp@D28z!n@NED*yB!ROMt5d&MwK7VzwzMJkrWQ^Nc!&5nqx
+      - DD_CREDENTIAL_AES_256_KEY=bZyVV1VjsKj8Pc6Z0zJEYRCV8VhzoOWzTQrVuFjNxeU=
+      - DD_ALLOWED_HOSTS=*
+      - DD_ADMIN_USER=admin
+      - DD_ADMIN_PASSWORD=admin
+      - DD_SESSION_COOKIE_HTTPONLY=True
+      - DD_CSRF_COOKIE_HTTPONLY=True
+      - DD_SECURE_SSL_REDIRECT=False
+      - DD_SECURE_BROWSER_XSS_FILTER=True
+      - DD_LANGUAGE_CODE=en-us
+      - DD_TIME_ZONE=UTC
+      - DD_PORT=8081
+    volumes:
+      - defectdojo_media:/app/media
+      - defectdojo_static:/app/static
+      - ./reports:/reports:ro
+    networks:
+      - security-scan
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8081/login')\" || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  defectdojo-nginx:
+    image: nginx:alpine
+    container_name: defectdojo-nginx
+    depends_on:
+      defectdojo:
+        condition: service_healthy
+    ports:
+      - "8000:8080"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - defectdojo_media:/usr/share/nginx/html/media:ro
+      - defectdojo_static:/usr/share/nginx/html/static:ro
+    networks:
+      - security-scan
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 8080 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  defectdojo-celery-beat:
+    image: defectdojo/defectdojo-django:latest
+    container_name: defectdojo-celery-beat
+    depends_on:
+      defectdojo:
+        condition: service_healthy
+    environment:
+      - DD_DATABASE_URL=postgresql://defectdojo:defectdojo@postgres:5432/defectdojo
+      - DD_CELERY_BROKER_URL=redis://redis:6379/0
+      - DD_SECRET_KEY=hhZCp@D28z!n@NED*yB!ROMt5d&MwK7VzwzMJkrWQ^Nc!&5nqx
+      - DD_CREDENTIAL_AES_256_KEY=bZyVV1VjsKj8Pc6Z0zJEYRCV8VhzoOWzTQrVuFjNxeU=
+      - DD_ALLOWED_HOSTS=*
+    entrypoint: ['/entrypoint-celery-beat.sh']
+    volumes:
+      - defectdojo_media:/app/media
+    networks:
+      - security-scan
+
+  defectdojo-celery-worker:
+    image: defectdojo/defectdojo-django:latest
+    container_name: defectdojo-celery-worker
+    depends_on:
+      defectdojo:
+        condition: service_healthy
+    environment:
+      - DD_DATABASE_URL=postgresql://defectdojo:defectdojo@postgres:5432/defectdojo
+      - DD_CELERY_BROKER_URL=redis://redis:6379/0
+      - DD_SECRET_KEY=hhZCp@D28z!n@NED*yB!ROMt5d&MwK7VzwzMJkrWQ^Nc!&5nqx
+      - DD_CREDENTIAL_AES_256_KEY=bZyVV1VjsKj8Pc6Z0zJEYRCV8VhzoOWzTQrVuFjNxeU=
+      - DD_ALLOWED_HOSTS=*
+    entrypoint: ['/entrypoint-celery-worker.sh']
+    volumes:
+      - defectdojo_media:/app/media
+      - ./reports:/reports:ro
+    networks:
+      - security-scan
+
+networks:
+  security-scan:
+    driver: bridge
+
+volumes:
+  sonarqube_data:
+  sonarqube_extensions:
+  sonarqube_logs:
+  nuclei_templates:
+  trivy_cache:
+  dependency_check_data:
+  defectdojo_media:
+  defectdojo_static:
+  postgres_data:
+  redis_data:
