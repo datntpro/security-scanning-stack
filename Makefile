@@ -86,6 +86,9 @@ status: ## Kiểm tra trạng thái services
 	@docker compose ps
 
 import: ## Import reports vào DefectDojo
+	@echo "Ensuring DefectDojo is running..."
+	@docker compose up -d defectdojo-nginx 2>/dev/null || true
+	@sleep 2
 	@bash import-to-defectdojo.sh
 
 defectdojo-init: ## Khởi tạo DefectDojo lần đầu
@@ -93,7 +96,7 @@ defectdojo-init: ## Khởi tạo DefectDojo lần đầu
 	@docker compose up -d postgres redis
 	@sleep 5
 	@docker compose up defectdojo-initializer
-	@docker compose up -d defectdojo defectdojo-celery-beat defectdojo-celery-worker
+	@docker compose up -d defectdojo defectdojo-celery-beat defectdojo-celery-worker defectdojo-nginx
 	@echo "Waiting for DefectDojo to be ready..."
 	@sleep 10
 	@docker exec defectdojo python manage.py shell -c "from django.contrib.auth.models import User; u = User.objects.get(username='admin'); u.set_password('admin'); u.save()" 2>/dev/null || true
@@ -103,18 +106,13 @@ defectdojo-init: ## Khởi tạo DefectDojo lần đầu
 	@echo "Username: admin"
 	@echo "Password: admin"
 
-test-defectdojo: ## Test DefectDojo connection
-	@bash test-defectdojo.sh
-
 open-defectdojo: ## Mở DefectDojo trong browser
-	@bash open-defectdojo.sh
-
-show-findings: ## Hiển thị tổng hợp findings
-	@bash show-findings.sh
-
-report: ## Tạo HTML report (English)
-	@bash generate-report.sh
-	@open security-report.html 2>/dev/null || xdg-open security-report.html 2>/dev/null || echo "Please open security-report.html in your browser"
+	@echo "Opening DefectDojo..."
+	@open http://localhost:8000 2>/dev/null || xdg-open http://localhost:8000 2>/dev/null || echo "Please open http://localhost:8000 in your browser"
+	@echo ""
+	@echo "Login credentials:"
+	@echo "  Username: admin"
+	@echo "  Password: admin"
 
 report-vi: ## Tạo báo cáo HTML tiếng Việt (chi tiết)
 	@bash generate-vietnamese-report.sh

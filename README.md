@@ -1,15 +1,134 @@
-# Security Scanning Stack với Docker Compose
+# Security Scanning Stack
 
-Stack này tích hợp các công cụ opensource nổi tiếng để scan source code toàn diện.
+🔒 Hệ thống quét bảo mật source code tự động với Docker Compose
 
-## Cấu trúc thư mục
+## � Yêuc cầu hệ thống
+
+- Docker & Docker Compose
+- 8GB RAM tối thiểu (khuyến nghị 16GB)
+- 20GB dung lượng đĩa trống
+- macOS, Linux, hoặc Windows với WSL2
+
+## 🚀 Hướng dẫn sử dụng từng bước
+
+### Bước 1: Chuẩn bị môi trường
+
+```bash
+# Tạo thư mục cần thiết
+make setup
+
+# Copy source code cần scan vào thư mục source/
+cp -r /path/to/your/code source/
+
+# Hoặc clone từ git
+git clone https://github.com/your/repo source/your-project
+```
+
+### Bước 2: Khởi động DefectDojo (Vulnerability Management Platform)
+
+```bash
+# Khởi tạo DefectDojo lần đầu tiên
+make defectdojo-init
+
+# Đợi khoảng 30-60 giây để DefectDojo khởi động hoàn toàn
+```
+
+**Thông tin đăng nhập DefectDojo:**
+- URL: http://localhost:8000
+- Username: `admin`
+- Password: `admin`
+
+### Bước 3: Chạy scan
+
+```bash
+# Chạy tất cả scanners (khuyến nghị)
+make scan
+
+# Hoặc chạy từng loại scan:
+make scan-secrets      # Scan secrets (nhanh - 5s)
+make scan-sast         # Scan code vulnerabilities (30s)
+make scan-iac          # Scan infrastructure code (20s)
+make scan-container    # Scan containers (60s)
+make scan-sca          # Scan dependencies (120s)
+```
+
+**Kết quả scan sẽ được lưu trong thư mục `reports/`**
+
+### Bước 4: Import kết quả vào DefectDojo
+
+```bash
+# Import tất cả scan results
+make import
+```
+
+Script sẽ tự động:
+- ✅ Kiểm tra DefectDojo đang chạy
+- ✅ Lấy API token
+- ✅ Tạo Product và Engagement
+- ✅ Import tất cả reports có trong thư mục `reports/`
+
+### Bước 5: Xem kết quả
+
+**Option 1: DefectDojo Web UI (Khuyến nghị)**
+```bash
+make open-defectdojo
+# Hoặc truy cập: http://localhost:8000
+```
+
+**Option 2: Báo cáo HTML tiếng Việt**
+```bash
+make report-vi
+# File: bao-cao-bao-mat.html
+```
+
+**Option 3: Xem raw reports**
+```bash
+ls -lh reports/
+cat reports/semgrep-report.json | jq
+cat reports/gitleaks-report.json | jq
+```
+
+## � ️ Các lệnh thường dùng
+
+```bash
+# Quản lý services
+make up                    # Khởi động tất cả services
+make down                  # Dừng tất cả services
+make status                # Xem trạng thái services
+make logs                  # Xem logs
+
+# Scan
+make scan                  # Chạy tất cả scanners
+make scan-secrets          # Chỉ scan secrets
+make scan-sast             # Chỉ scan code vulnerabilities
+make scan-iac              # Chỉ scan infrastructure code
+make scan-container        # Chỉ scan containers
+make scan-sca              # Chỉ scan dependencies
+
+# Import & View
+make import                # Import vào DefectDojo
+make open-defectdojo       # Mở DefectDojo UI
+make report-vi             # Tạo báo cáo HTML tiếng Việt
+
+# Cleanup
+make clean                 # Xóa reports
+make clean-all             # Xóa tất cả (bao gồm volumes)
+```
+
+## 📁 Cấu trúc thư mục
 
 ```
 .
-├── compose.yaml          # File Docker Compose chính
-├── source/              # Đặt source code cần scan vào đây
-├── reports/             # Kết quả scan sẽ được lưu ở đây
-└── README.md           # File này
+├── compose.yaml                    # Docker Compose configuration
+├── Makefile                        # Commands tiện lợi
+├── scan-all.sh                     # Script scan tự động
+├── import-to-defectdojo.sh        # Script import findings
+├── generate-vietnamese-report.sh   # Script tạo báo cáo tiếng Việt
+├── nginx.conf                      # Nginx config cho DefectDojo
+├── source/                         # Đặt source code cần scan vào đây
+├── reports/                        # Kết quả scan
+├── README.md                       # Hướng dẫn tiếng Anh (file này)
+└── HUONG-DAN-TIENG-VIET.md        # Hướng dẫn tiếng Việt đầy đủ
 ```
 
 ## Các công cụ được tích hợp
@@ -273,11 +392,143 @@ chmod -R 755 source/
 chmod -R 777 reports/
 ```
 
-## Tài liệu tham khảo
+## � Chii tiết các scanners
 
-- [SonarQube](https://docs.sonarqube.org/)
-- [Semgrep](https://semgrep.dev/docs/)
-- [OWASP ZAP](https://www.zaproxy.org/docs/)
-- [Trivy](https://aquasecurity.github.io/trivy/)
-- [Gitleaks](https://github.com/gitleaks/gitleaks)
-- [Checkov](https://www.checkov.io/1.Welcome/What%20is%20Checkov.html)
+### Secret Detection
+- **Gitleaks** - Tìm API keys, passwords, tokens trong code
+- **TruffleHog** - Tìm secrets trong git history
+
+### SAST (Static Application Security Testing)
+- **Semgrep** - Phân tích code đa ngôn ngữ (Java, Python, JS, Go, etc.)
+- **SonarQube** - Phân tích chất lượng code và security issues
+
+### Container Security
+- **Trivy** - Scan vulnerabilities trong containers và filesystems
+- **Grype** - Vulnerability scanner cho containers
+- **Dockle** - Container image linter
+
+### IaC Security
+- **Checkov** - Scan Terraform, CloudFormation, Kubernetes, Dockerfile
+- **TFSec** - Terraform security scanner
+- **KICS** - Infrastructure as Code security scanner
+
+### SCA (Software Composition Analysis)
+- **OWASP Dependency-Check** - Scan dependencies cho Java, .NET, Python, etc.
+- **Safety** - Python dependencies scanner
+
+### DAST (Dynamic Application Security Testing)
+- **OWASP ZAP** - Web application penetration testing
+- **Nuclei** - Template-based vulnerability scanner
+
+### Vulnerability Management
+- **DefectDojo** - Centralized vulnerability management platform
+  - Tổng hợp findings từ tất cả scanners
+  - Deduplication và risk management
+  - Metrics, reporting, compliance
+
+## 🆘 Troubleshooting
+
+### DefectDojo không khởi động
+
+```bash
+# Kiểm tra logs
+docker compose logs defectdojo
+
+# Restart
+docker compose restart defectdojo defectdojo-nginx
+
+# Full reset
+docker compose down
+make defectdojo-init
+```
+
+### Import failed
+
+```bash
+# Đảm bảo DefectDojo đang chạy
+docker compose ps | grep defectdojo
+
+# Kiểm tra nginx đã start
+docker compose ps | grep nginx
+
+# Start nginx nếu chưa chạy
+docker compose up -d defectdojo-nginx
+
+# Thử import lại
+make import
+```
+
+### Port conflict
+
+```bash
+# Tìm process đang dùng port
+lsof -i :8000
+
+# Hoặc đổi port trong compose.yaml
+# defectdojo-nginx:
+#   ports:
+#     - "8001:8080"
+```
+
+### Scan chậm
+
+```bash
+# Chạy từng loại scan thay vì tất cả
+make scan-secrets  # Nhanh nhất (5s)
+make scan-sast     # Trung bình (30s)
+make scan-iac      # Trung bình (20s)
+
+# Tăng resources cho Docker
+# Docker Desktop → Settings → Resources
+# CPU: 4+ cores, Memory: 8+ GB
+```
+
+### Permission denied
+
+```bash
+# Fix permissions
+chmod -R 755 source/
+chmod -R 777 reports/
+```
+
+## 📚 Tài liệu
+
+### Hướng dẫn sử dụng
+- **[QUICKSTART.md](QUICKSTART.md)** - Hướng dẫn nhanh 5 phút ⚡
+- **[HUONG-DAN-TIENG-VIET.md](HUONG-DAN-TIENG-VIET.md)** - Hướng dẫn chi tiết từng bước (Tiếng Việt) 🇻🇳
+- **[IMPORT-GUIDE.md](IMPORT-GUIDE.md)** - Hướng dẫn import chi tiết 📥
+
+### Tài liệu tham khảo
+- [DefectDojo Documentation](https://documentation.defectdojo.com/)
+- [Semgrep Rules](https://semgrep.dev/explore)
+- [OWASP Top 10](https://owasp.org/www-project-top-ten/)
+- [Trivy Documentation](https://aquasecurity.github.io/trivy/)
+- [Gitleaks Documentation](https://github.com/gitleaks/gitleaks)
+
+## 🎯 Workflow hoàn chỉnh
+
+```
+1. Setup
+   ↓
+2. Start DefectDojo (make defectdojo-init)
+   ↓
+3. Prepare source code (cp code to source/)
+   ↓
+4. Run scans (make scan)
+   ↓
+5. Import to DefectDojo (make import)
+   ↓
+6. Review findings (make open-defectdojo)
+   ↓
+7. Assign to developers
+   ↓
+8. Fix vulnerabilities
+   ↓
+9. Re-scan (make scan)
+   ↓
+10. Verify fixes (make import)
+```
+
+## 📝 License
+
+Private - Internal Use Only

@@ -1,12 +1,13 @@
 # Source code directory (chứa code cần scan)
-source/
+source/*
+!source/.gitkeep
 
 # Reports directory (chứa kết quả scan)
-reports/
+reports/*
+!reports/.gitkeep
 
 # Generated HTML reports
-security-report.html
-bao-cao-bao-mat.html
+*.html
 
 # Docker volumes
 *.log

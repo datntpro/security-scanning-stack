@@ -1,44 +1,303 @@
-# Hướng Dẫn Sử Dụng - Security Scanning Stack
+# Hướng Dẫn Sử Dụng Chi Tiết - Security Scanning Stack
 
-## 🚀 Bắt Đầu Nhanh
+## 📋 Yêu cầu hệ thống
 
-### Bước 1: Chuẩn bị source code
+- Docker & Docker Compose đã cài đặt
+- 8GB RAM tối thiểu (khuyến nghị 16GB)
+- 20GB dung lượng đĩa trống
+- macOS, Linux, hoặc Windows với WSL2
+
+## 🚀 Hướng dẫn từng bước (Chi tiết)
+
+### BƯỚC 1: Chuẩn bị môi trường
 
 ```bash
-# Tạo thư mục
+# 1.1. Tạo thư mục cần thiết
 make setup
 
-# Copy source code cần scan vào thư mục source/
+# Kết quả:
+# ✓ Tạo thư mục source/
+# ✓ Tạo thư mục reports/
+```
+
+```bash
+# 1.2. Copy source code cần scan
 cp -r /path/to/your/project/* source/
+
+# Hoặc clone từ git
+git clone https://github.com/your/repo source/your-project
+
+# Hoặc sử dụng files mẫu có sẵn (để test)
+# Files mẫu đã có trong source/ với 50+ lỗ hổng
+ls -la source/
 ```
 
-### Bước 2: Chạy scan
+### BƯỚC 2: Khởi động DefectDojo
+
+DefectDojo là nền tảng quản lý lỗ hổng bảo mật, nơi tổng hợp tất cả kết quả scan.
 
 ```bash
-# Chạy tất cả scanners
+# 2.1. Khởi tạo DefectDojo lần đầu tiên
+make defectdojo-init
+
+# Quá trình này sẽ:
+# - Khởi động PostgreSQL database
+# - Khởi động Redis cache
+# - Khởi tạo DefectDojo database
+# - Tạo admin user
+# - Khởi động DefectDojo web server
+# - Khởi động Nginx reverse proxy
+# - Khởi động Celery workers (background tasks)
+
+# Đợi khoảng 30-60 giây...
+```
+
+```bash
+# 2.2. Kiểm tra DefectDojo đã sẵn sàng
+docker compose ps
+
+# Bạn sẽ thấy:
+# ✓ defectdojo            (healthy)
+# ✓ defectdojo-nginx      (healthy)
+# ✓ defectdojo-postgres   (healthy)
+# ✓ defectdojo-redis      (healthy)
+# ✓ defectdojo-celery-worker
+# ✓ defectdojo-celery-beat
+```
+
+```bash
+# 2.3. Truy cập DefectDojo
+make open-defectdojo
+
+# Hoặc mở browser: http://localhost:8000
+# Username: admin
+# Password: admin
+```
+
+**⚠️ LƯU Ý QUAN TRỌNG:**
+- Lần đầu tiên khởi động có thể mất 1-2 phút
+- Nếu không truy cập được, chạy: `docker compose logs defectdojo`
+- Nếu nginx chưa chạy: `docker compose up -d defectdojo-nginx`
+
+### BƯỚC 3: Chạy scan
+
+Có 2 cách chạy scan:
+
+**Cách 1: Chạy tất cả scanners (Khuyến nghị)**
+
+```bash
+# 3.1. Chạy script scan tự động
 make scan
+
+# Hoặc
+bash scan-all.sh
+
+# Script sẽ chạy tuần tự:
+# 1. Secret Detection (Gitleaks, TruffleHog)      ~5 giây
+# 2. SAST (Semgrep)                               ~30 giây
+# 3. Container Security (Trivy, Grype)            ~60 giây
+# 4. IaC Security (Checkov, TFSec, KICS)         ~20 giây
+# 5. SCA (Dependency-Check, Safety)               ~120 giây
+
+# Tổng thời gian: ~4-5 phút
 ```
 
-Quá trình scan sẽ:
-- Quét source code với Semgrep (SAST)
-- Tìm secrets với Gitleaks
-- Tạo reports trong thư mục `reports/`
-
-### Bước 3: Import vào DefectDojo
+**Cách 2: Chạy từng loại scan**
 
 ```bash
-# Import findings vào DefectDojo
+# 3.2a. Scan secrets (nhanh nhất - 5 giây)
+make scan-secrets
+
+# Chạy:
+# - Gitleaks: Tìm API keys, passwords, tokens
+# - TruffleHog: Tìm secrets trong git history
+
+# Kết quả:
+# - reports/gitleaks-report.json
+# - reports/trufflehog-report.json
+```
+
+```bash
+# 3.2b. Scan code vulnerabilities (30 giây)
+make scan-sast
+
+# Chạy:
+# - Semgrep: Phân tích code tìm lỗ hổng
+#   + SQL Injection
+#   + XSS, Command Injection
+#   + Path Traversal
+#   + Hardcoded secrets
+#   + Weak cryptography
+#   + ... và nhiều hơn
+
+# Kết quả:
+# - reports/semgrep-report.json
+```
+
+```bash
+# 3.2c. Scan infrastructure code (20 giây)
+make scan-iac
+
+# Chạy:
+# - Checkov: Scan Terraform, CloudFormation, K8s, Dockerfile
+# - TFSec: Terraform security scanner
+# - KICS: Infrastructure as Code scanner
+
+# Kết quả:
+# - reports/results_checkov.json
+# - reports/tfsec-report.json
+# - reports/results.json (KICS)
+```
+
+```bash
+# 3.2d. Scan containers (60 giây)
+make scan-container
+
+# Chạy:
+# - Trivy: Scan vulnerabilities trong containers
+# - Grype: Vulnerability scanner
+
+# Kết quả:
+# - reports/trivy-fs-report.json
+# - reports/grype-report.json
+```
+
+```bash
+# 3.2e. Scan dependencies (120 giây - chậm nhất)
+make scan-sca
+
+# Chạy:
+# - OWASP Dependency-Check: Scan Java, .NET, Python, Node.js dependencies
+# - Safety: Python dependencies scanner
+
+# Kết quả:
+# - reports/dependency-check-report.json
+# - reports/safety-report.json
+```
+
+```bash
+# 3.3. Kiểm tra kết quả scan
+ls -lh reports/
+
+# Bạn sẽ thấy các file JSON:
+# -rw-r--r--  gitleaks-report.json       (45KB)
+# -rw-r--r--  semgrep-report.json        (323KB)
+# -rw-r--r--  trivy-fs-report.json       (150KB)
+# -rw-r--r--  results_checkov.json       (80KB)
+# ... và nhiều hơn
+```
+
+### BƯỚC 4: Import kết quả vào DefectDojo
+
+```bash
+# 4.1. Import tất cả scan results
+make import
+
+# Script sẽ tự động:
+# ✓ Kiểm tra DefectDojo đang chạy
+# ✓ Lấy API token (authentication)
+# ✓ Tạo/Tìm Product: "Security Scan Project"
+# ✓ Tạo Engagement mới: "Automated Security Scan 2024-11-22"
+# ✓ Import từng report với scan type phù hợp:
+#   - Gitleaks → "Gitleaks Scan"
+#   - Semgrep → "Semgrep JSON Report"
+#   - Trivy → "Trivy Scan"
+#   - Checkov → "Checkov Scan"
+#   - TFSec → "Tfsec Scan"
+#   - KICS → "KICS Scan"
+#   - Grype → "Grype JSON"
+#   - Dependency-Check → "Dependency Check Scan"
+#   - Safety → "Safety Scan"
+
+# Kết quả:
+# ✓ Gitleaks imported successfully
+# ✓ Semgrep imported successfully
+# ✓ Trivy imported successfully
+# ... và nhiều hơn
+```
+
+**Xử lý lỗi import:**
+
+```bash
+# Nếu import failed, kiểm tra:
+
+# 1. DefectDojo có đang chạy không?
+docker compose ps | grep defectdojo
+
+# 2. Nginx có đang chạy không?
+docker compose ps | grep nginx
+
+# 3. Có kết nối được không?
+curl -s http://localhost:8000/login
+
+# 4. Xem logs
+docker compose logs defectdojo
+docker compose logs defectdojo-celery-worker
+
+# 5. Restart và thử lại
+docker compose restart defectdojo defectdojo-nginx
+sleep 10
 make import
 ```
 
-### Bước 4: Xem báo cáo
+### BƯỚC 5: Xem và phân tích kết quả
+
+Có 3 cách xem kết quả:
+
+**Cách 1: DefectDojo Web UI (Khuyến nghị - Chuyên nghiệp nhất)**
 
 ```bash
-# Tạo báo cáo HTML tiếng Việt (KHUYẾN NGHỊ)
+# 5.1. Mở DefectDojo
+make open-defectdojo
+
+# Hoặc: http://localhost:8000
+# Login: admin / admin
+```
+
+**Trong DefectDojo UI:**
+
+1. **Dashboard** - Trang chủ
+   - Tổng số findings
+   - Phân loại theo severity (Critical, High, Medium, Low)
+   - Charts và trends
+   - Top products by findings
+
+2. **Findings → All Findings** - Xem tất cả lỗ hổng
+   - Filter theo severity, status, scanner
+   - Sort theo date, severity
+   - Bulk actions (assign, close, accept risk)
+   - Export CSV/JSON
+
+3. **Click vào một finding** - Xem chi tiết
+   - Title & Description
+   - Severity & CVSS Score
+   - File path & Line number
+   - CWE/CVE ID
+   - Mitigation (cách khắc phục)
+   - References (links tham khảo)
+   - Notes & Comments
+   - History
+
+4. **Products** - Quản lý projects
+   - Xem metrics của từng product
+   - Engagements (các đợt scan)
+   - Tests (scan results)
+
+5. **Metrics** - Báo cáo và thống kê
+   - Findings by Severity
+   - Findings by Scanner
+   - Open vs Closed trends
+   - Time to Remediate
+   - SLA tracking
+
+**Cách 2: Báo cáo HTML tiếng Việt (Dễ đọc - Có hướng dẫn fix)**
+
+```bash
+# 5.2. Tạo báo cáo HTML tiếng Việt
 make report-vi
 
-# Hoặc xem trong DefectDojo
-make open-defectdojo
+# File được tạo: bao-cao-bao-mat.html
+# Tự động mở trong browser
 ```
 
 ## 📊 Báo Cáo Tiếng Việt
@@ -320,17 +579,142 @@ firefox bao-cao-bao-mat.html
 chrome bao-cao-bao-mat.html
 ```
 
+## 📊 Sử Dụng DefectDojo
+
+### Truy cập DefectDojo
+
+```bash
+# Mở trong browser
+make open-defectdojo
+# Hoặc: http://localhost:8000
+```
+
+**Thông tin đăng nhập:**
+- Username: `admin`
+- Password: `admin`
+
+### Các chức năng chính
+
+**1. Dashboard**
+- Tổng quan findings theo severity
+- Charts và metrics
+- Trends theo thời gian
+
+**2. Products & Engagements**
+- Tổ chức theo ứng dụng/project
+- Mỗi sprint/scan = 1 engagement
+
+**3. Findings Management**
+- Xem danh sách tất cả lỗ hổng
+- Filter theo severity, status, scanner
+- Assign cho developers
+- Track remediation progress
+
+**4. Import Scan Results**
+- Tự động: `make import`
+- Thủ công: Findings → Import Scan Results
+- Chọn scan type phù hợp:
+  - Gitleaks → "Gitleaks Scan"
+  - Semgrep → "Semgrep JSON Report"
+  - Trivy → "Trivy Scan"
+  - Checkov → "Checkov Scan"
+
+**5. Reports**
+- Generate PDF/CSV reports
+- Executive summaries
+- Compliance reports
+
+### Workflow quản lý Finding
+
+1. **Triage**: Review findings mới
+2. **Verify**: Xác nhận là lỗ hổng thực
+3. **Prioritize**: Ưu tiên Critical/High
+4. **Assign**: Giao cho developer
+5. **Track**: Theo dõi tiến độ fix
+6. **Retest**: Scan lại sau khi fix
+7. **Close**: Đóng finding đã fix
+
+## 🆘 Troubleshooting
+
+### DefectDojo không khởi động
+
+```bash
+# Check logs
+docker compose logs defectdojo
+
+# Restart
+docker compose restart defectdojo
+
+# Full reset
+docker compose down
+docker compose up -d
+```
+
+### Import failed
+
+```bash
+# Kiểm tra file format
+cat reports/semgrep-report.json | jq
+
+# Xem Celery worker logs
+docker compose logs defectdojo-celery-worker
+
+# Import thủ công qua UI
+# http://localhost:8000 → Findings → Import Scan Results
+```
+
+### Scan chậm
+
+```bash
+# Chạy từng loại scan
+make scan-secrets  # Nhanh nhất
+make scan-sast     # Trung bình
+make scan-sca      # Chậm nhất
+
+# Tăng resources cho Docker
+# Docker Desktop → Settings → Resources
+# CPU: 4+ cores, Memory: 8+ GB
+```
+
+### Port conflict
+
+```bash
+# Tìm process đang dùng port
+lsof -i :8000
+
+# Hoặc đổi port trong compose.yaml
+# defectdojo:
+#   ports:
+#     - "8001:8081"
+```
+
+### Permission denied
+
+```bash
+# Fix permissions
+chmod -R 755 source/
+chmod -R 777 reports/
+```
+
+### Disk full
+
+```bash
+# Clean up
+make clean
+docker system prune -a
+docker volume prune
+```
+
 ## 📚 Tài Liệu Tham Khảo
 
 - [README.md](README.md) - Hướng dẫn tổng quan (English)
-- [DEFECTDOJO-UI-GUIDE.md](DEFECTDOJO-UI-GUIDE.md) - Hướng dẫn DefectDojo UI
-- [IMPORT-GUIDE.md](IMPORT-GUIDE.md) - Hướng dẫn import findings
-- [SCAN-RESULTS.md](SCAN-RESULTS.md) - Kết quả scan chi tiết
-- [DEMO.md](DEMO.md) - Demo từng bước
+- [DefectDojo Documentation](https://documentation.defectdojo.com/)
+- [Semgrep Rules](https://semgrep.dev/explore)
+- [OWASP Top 10](https://owasp.org/www-project-top-ten/)
 
 ## 🎉 Kết Luận
 
-Tools hoạt động hoàn hảo và đã tìm thấy hàng trăm lỗ hổng thực sự trong source code!
+Tools hoạt động hoàn hảo và có thể tìm thấy hàng trăm lỗ hổng thực sự trong source code!
 
 **Bước tiếp theo:**
 1. Chạy `make report-vi` để tạo báo cáo tiếng Việt
