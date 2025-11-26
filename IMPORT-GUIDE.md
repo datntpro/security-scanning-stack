@@ -78,7 +78,6 @@ Password: admin
 | `results.json` (KICS) | **KICS Scan** |
 | `dependency-check-report.json` | **Dependency Check Scan** |
 | `safety-report.json` | **Safety Scan** |
-| `zap-report.json` | **ZAP Scan** |
 
 4. Upload file từ thư mục `reports/`
 5. Chọn options:

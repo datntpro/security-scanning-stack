@@ -22,7 +22,6 @@ up: ## Khởi động tất cả services
 	@echo ""
 	@echo "Access points:"
 	@echo "  - SonarQube:  http://localhost:9000"
-	@echo "  - OWASP ZAP:  http://localhost:8080"
 	@echo "  - DefectDojo: http://localhost:8000"
 
 down: ## Dừng tất cả services

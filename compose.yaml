@@ -34,18 +34,6 @@ services:
   # DAST - Dynamic Application Security Testing
   # ============================================
   
-  owasp-zap:
-    image: ghcr.io/zaproxy/zaproxy:stable
-    container_name: owasp-zap
-    ports:
-      - "8080:8080"
-      - "8090:8090"
-    volumes:
-      - ./reports:/zap/reports
-    command: zap.sh -daemon -host 0.0.0.0 -port 8080 -config api.addrs.addr.name=.* -config api.addrs.addr.regex=true
-    networks:
-      - security-scan
-
   nuclei:
     image: projectdiscovery/nuclei:latest
     container_name: nuclei

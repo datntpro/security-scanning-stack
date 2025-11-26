@@ -236,10 +236,6 @@ import_report "reports/dependency-check-report.json" "Dependency Check Scan" "OW
 import_report "reports/safety-report.json" "Safety Scan" "Safety"
 echo ""
 
-echo -e "${BLUE}[DAST]${NC}"
-import_report "reports/zap-report.json" "ZAP Scan" "OWASP ZAP"
-echo ""
-
 echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}Import completed!${NC}"
 echo -e "${GREEN}========================================${NC}"

@@ -1,5 +1,19 @@
 # Changelog
 
+## 2024-11-26 - Loại bỏ OWASP ZAP
+
+### Đã xóa
+- ❌ OWASP ZAP - Tool DAST yêu cầu test manual, không phù hợp với automated scanning
+- ❌ Xóa service owasp-zap khỏi compose.yaml
+- ❌ Xóa tất cả tham chiếu đến ZAP trong documentation
+- ❌ Xóa import ZAP report trong import-to-defectdojo.sh
+- ❌ Xóa khởi động ZAP trong scan-all.sh
+
+### Lý do
+- OWASP ZAP yêu cầu cấu hình manual và target URL cụ thể
+- Không phù hợp với automated source code scanning
+- Nuclei vẫn được giữ lại cho DAST scanning
+
 ## 2024-11-22 - Dọn dẹp và tối ưu hóa
 
 ### Đã xóa

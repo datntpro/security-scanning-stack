@@ -28,7 +28,7 @@ fi
 mkdir -p reports
 
 echo -e "${YELLOW}[1/3] Khởi động infrastructure services...${NC}"
-docker compose up -d sonarqube postgres defectdojo owasp-zap
+docker compose up -d sonarqube postgres defectdojo
 echo -e "${GREEN}✓ Infrastructure services started${NC}"
 echo ""
 
@@ -118,7 +118,6 @@ fi
 echo ""
 echo "Các services đang chạy:"
 echo "  - SonarQube:    http://localhost:9000 (admin/admin)"
-echo "  - OWASP ZAP:    http://localhost:8080"
 echo "  - DefectDojo:   http://localhost:8000 (admin/admin)"
 echo ""
 echo "Để xem reports:"

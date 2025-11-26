@@ -138,7 +138,6 @@ make clean-all             # Xóa tất cả (bao gồm volumes)
 - **Semgrep** - Phân tích tĩnh đa ngôn ngữ
 
 ### DAST (Dynamic Application Security Testing)
-- **OWASP ZAP** (Port 8080, 8090) - Penetration testing
 - **Nuclei** - Template-based scanner
 
 ### Container Security
@@ -253,28 +252,19 @@ docker run --rm \
   -Dsonar.password=admin
 ```
 
-### 5. Sử dụng OWASP ZAP
-
-```bash
-# Truy cập ZAP UI: http://localhost:8080
-
-# Scan một URL cụ thể
-docker exec owasp-zap zap-baseline.py -t https://example.com -r /zap/reports/zap-report.html
-```
-
-### 6. Scan Docker Image với Trivy
+### 5. Scan Docker Image với Trivy
 
 ```bash
 docker exec trivy trivy image --format json --output /reports/trivy-image-report.json nginx:latest
 ```
 
-### 7. Scan Docker Image với Dockle
+### 6. Scan Docker Image với Dockle
 
 ```bash
 docker exec dockle dockle --format json --output /reports/dockle-report.json nginx:latest
 ```
 
-### 8. Sử dụng DefectDojo (Vulnerability Management)
+### 7. Sử dụng DefectDojo (Vulnerability Management)
 
 DefectDojo với giao diện đẹp, đầy đủ CSS và thân thiện!
 
@@ -307,7 +297,7 @@ bash import-to-defectdojo.sh
 bash scan-all.sh
 
 # Script sẽ:
-# 1. Khởi động infrastructure (SonarQube, ZAP, DefectDojo)
+# 1. Khởi động infrastructure (SonarQube, DefectDojo)
 # 2. Chạy tất cả scanners
 # 3. Hỏi có muốn import vào DefectDojo không
 
@@ -417,7 +407,6 @@ chmod -R 777 reports/
 - **Safety** - Python dependencies scanner
 
 ### DAST (Dynamic Application Security Testing)
-- **OWASP ZAP** - Web application penetration testing
 - **Nuclei** - Template-based vulnerability scanner
 
 ### Vulnerability Management
