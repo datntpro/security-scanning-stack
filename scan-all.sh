@@ -74,11 +74,6 @@ docker compose up checkov
 echo -e "${GREEN}✓ Checkov completed${NC}"
 echo ""
 
-echo -e "${YELLOW}→ Running TFSec (Terraform Security)...${NC}"
-docker compose up tfsec
-echo -e "${GREEN}✓ TFSec completed${NC}"
-echo ""
-
 echo -e "${YELLOW}→ Running KICS (IaC Security)...${NC}"
 docker compose up kics
 echo -e "${GREEN}✓ KICS completed${NC}"

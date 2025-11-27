@@ -209,9 +209,9 @@ docker compose up trivy
 docker compose up checkov
 ```
 
-#### Scan với TFSec (Terraform)
+#### Scan với KICS (IaC)
 ```bash
-docker compose up tfsec
+docker compose up kics
 ```
 
 #### Scan với OWASP Dependency-Check
@@ -399,8 +399,8 @@ chmod -R 777 reports/
 
 ### IaC Security
 - **Checkov** - Scan Terraform, CloudFormation, Kubernetes, Dockerfile
-- **TFSec** - Terraform security scanner
 - **KICS** - Infrastructure as Code security scanner
+- **Trivy** - Scan IaC misconfigurations (Terraform, CloudFormation, Dockerfile, K8s)
 
 ### SCA (Software Composition Analysis)
 - **OWASP Dependency-Check** - Scan dependencies cho Java, .NET, Python, etc.

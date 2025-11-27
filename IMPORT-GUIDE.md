@@ -74,7 +74,6 @@ Password: admin
 | `grype-report.json` | **Grype JSON** |
 | `dockle-report.json` | **Dockle JSON** |
 | `results_checkov.json` | **Checkov Scan** |
-| `tfsec-report.json` | **Tfsec Scan** |
 | `results.json` (KICS) | **KICS Scan** |
 | `dependency-check-report.json` | **Dependency Check Scan** |
 | `safety-report.json` | **Safety Scan** |
