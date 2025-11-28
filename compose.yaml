@@ -59,7 +59,7 @@ services:
       - ./reports:/reports
       - trivy_cache:/root/.cache
     command: >
-      sh -c "trivy fs --format json --output /reports/trivy-fs-report.json /src || true"
+      filesystem --format json --output /reports/trivy-fs-report.json /src
     networks:
       - security-scan
 
@@ -71,7 +71,7 @@ services:
       - ./source:/src
       - ./reports:/reports
     command: >
-      sh -c "grype dir:/src -o json --file /reports/grype-report.json || true"
+      dir:/src -o json --file /reports/grype-report.json
     networks:
       - security-scan
 
@@ -96,19 +96,9 @@ services:
     volumes:
       - ./source:/src
       - ./reports:/reports
+    entrypoint: ["/bin/sh", "-c"]
     command: >
-      sh -c "checkov -d /src --framework all --output json --output-file-path /reports || true"
-    networks:
-      - security-scan
-
-  tfsec:
-    image: aquasec/tfsec:latest
-    container_name: tfsec
-    volumes:
-      - ./source:/src
-      - ./reports:/reports
-    command: >
-      sh -c "tfsec /src --format json --out /reports/tfsec-report.json || true"
+      "checkov -d /src --framework all --output json --output-file-path /reports || true"
     networks:
       - security-scan
 
@@ -119,7 +109,7 @@ services:
       - ./source:/src
       - ./reports:/reports
     command: >
-      sh -c "kics scan -p /src -o /reports --report-formats json,html || true"
+      scan -p /src -o /reports --report-formats json,html
     networks:
       - security-scan
 
@@ -146,8 +136,9 @@ services:
     volumes:
       - ./source:/src
       - ./reports:/reports
+    entrypoint: ["/bin/sh", "-c"]
     command: >
-      sh -c "trufflehog filesystem /src --json > /reports/trufflehog-report.json || true"
+      "trufflehog filesystem /src --json --no-verification > /reports/trufflehog-report.json 2>&1 || true"
     networks:
       - security-scan
 
@@ -162,8 +153,9 @@ services:
       - ./source:/src
       - ./reports:/reports
       - dependency_check_data:/usr/share/dependency-check/data
+    entrypoint: ["/bin/sh", "-c"]
     command: >
-      sh -c "/usr/share/dependency-check/bin/dependency-check.sh --scan /src --format JSON --format HTML --out /reports --project 'Security-Scan' || true"
+      "/usr/share/dependency-check/bin/dependency-check.sh --scan /src --format JSON --format HTML --out /reports --project 'Security-Scan' || true"
     networks:
       - security-scan
 

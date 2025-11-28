@@ -227,7 +227,6 @@ echo ""
 
 echo -e "${BLUE}[IaC Security]${NC}"
 import_report "reports/results_checkov.json" "Checkov Scan" "Checkov"
-import_report "reports/tfsec-report.json" "Tfsec Scan" "TFSec"
 import_report "reports/results.json" "KICS Scan" "KICS"
 echo ""
 

@@ -96,7 +96,7 @@ bash scan-all.sh
 # 1. Secret Detection (Gitleaks, TruffleHog)      ~5 giây
 # 2. SAST (Semgrep)                               ~30 giây
 # 3. Container Security (Trivy, Grype)            ~60 giây
-# 4. IaC Security (Checkov, TFSec, KICS)         ~20 giây
+# 4. IaC Security (Checkov, KICS, Trivy)        ~20 giây
 # 5. SCA (Dependency-Check, Safety)               ~120 giây
 
 # Tổng thời gian: ~4-5 phút
@@ -140,13 +140,13 @@ make scan-iac
 
 # Chạy:
 # - Checkov: Scan Terraform, CloudFormation, K8s, Dockerfile
-# - TFSec: Terraform security scanner
 # - KICS: Infrastructure as Code scanner
+# - Trivy: Scan IaC misconfigurations
 
 # Kết quả:
 # - reports/results_checkov.json
-# - reports/tfsec-report.json
 # - reports/results.json (KICS)
+# - reports/trivy-fs-report.json
 ```
 
 ```bash
@@ -203,7 +203,6 @@ make import
 #   - Semgrep → "Semgrep JSON Report"
 #   - Trivy → "Trivy Scan"
 #   - Checkov → "Checkov Scan"
-#   - TFSec → "Tfsec Scan"
 #   - KICS → "KICS Scan"
 #   - Grype → "Grype JSON"
 #   - Dependency-Check → "Dependency Check Scan"

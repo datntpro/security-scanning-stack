@@ -46,11 +46,11 @@ scan-sast: ## Chỉ scan SAST (Semgrep)
 	@docker compose up semgrep
 	@echo "✓ SAST scan completed"
 
-scan-iac: ## Chỉ scan IaC (Checkov, TFSec, KICS)
+scan-iac: ## Chỉ scan IaC (Checkov, KICS, Trivy)
 	@echo "Running IaC security scan..."
 	@docker compose up checkov
-	@docker compose up tfsec
 	@docker compose up kics
+	@docker compose up trivy
 	@echo "✓ IaC scan completed"
 
 scan-container: ## Chỉ scan containers (Trivy, Grype)
